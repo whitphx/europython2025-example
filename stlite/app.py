@@ -164,7 +164,7 @@ amount_range = st.slider(
     min_value=min_amount,
     max_value=max_amount,
     value=(min_amount, max_amount),
-    format="$%.0f"
+    format="$%.0f",
 )
 
 # Apply filters
@@ -185,8 +185,8 @@ if selected_note_cat != "All":
 
 # Apply amount range filter
 filtered_df = filtered_df[
-    (filtered_df["purchase_amount"] >= amount_range[0]) &
-    (filtered_df["purchase_amount"] <= amount_range[1])
+    (filtered_df["purchase_amount"] >= amount_range[0])
+    & (filtered_df["purchase_amount"] <= amount_range[1])
 ]
 
 # Show filtered results

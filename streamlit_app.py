@@ -136,7 +136,7 @@ with filter_col1:
     # Customer segment filter
     segments = ["All"] + sorted(df["customer_segment"].unique().tolist())
     selected_segment = st.selectbox("Customer Segment", segments)
-    
+
     # Revenue category filter
     revenue_categories = ["All"] + sorted(df["revenue_category"].unique().tolist())
     selected_revenue_cat = st.selectbox("Revenue Category", revenue_categories)
@@ -145,7 +145,7 @@ with filter_col2:
     # Payment method filter
     payment_methods = ["All"] + sorted(df["payment_method"].unique().tolist())
     selected_payment = st.selectbox("Payment Method", payment_methods)
-    
+
     # Sentiment filter
     sentiments = ["All"] + sorted(df["sentiment"].unique().tolist())
     selected_sentiment = st.selectbox("Sentiment", sentiments)
@@ -154,7 +154,7 @@ with filter_col3:
     # State filter
     states = ["All"] + sorted(df["state"].unique().tolist())
     selected_state = st.selectbox("State", states)
-    
+
     # Note category filter
     note_categories = ["All"] + sorted(df["note_category"].unique().tolist())
     selected_note_cat = st.selectbox("Note Category", note_categories)
@@ -164,11 +164,11 @@ st.write("Purchase Amount Range:")
 min_amount = float(df["purchase_amount"].min())
 max_amount = float(df["purchase_amount"].max())
 amount_range = st.slider(
-    "Select range", 
-    min_value=min_amount, 
-    max_value=max_amount, 
+    "Select range",
+    min_value=min_amount,
+    max_value=max_amount,
     value=(min_amount, max_amount),
-    format="$%.0f"
+    format="$%.0f",
 )
 
 # Apply filters
@@ -189,8 +189,8 @@ if selected_note_cat != "All":
 
 # Apply amount range filter
 filtered_df = filtered_df[
-    (filtered_df["purchase_amount"] >= amount_range[0]) & 
-    (filtered_df["purchase_amount"] <= amount_range[1])
+    (filtered_df["purchase_amount"] >= amount_range[0])
+    & (filtered_df["purchase_amount"] <= amount_range[1])
 ]
 
 # Show filtered results
@@ -203,7 +203,7 @@ st.dataframe(filtered_df, use_container_width=True)
 if len(filtered_df) > 0:
     st.subheader("Filtered Data Summary")
     summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
-    
+
     with summary_col1:
         st.metric("Filtered Records", len(filtered_df))
     with summary_col2:

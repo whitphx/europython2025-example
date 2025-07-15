@@ -54,7 +54,10 @@ async def process_unstructured_data_with_llm(df):
     for idx, row in df.iterrows():
         text = row["customer_feedback"]
         result = (await sentiment_analyzer(text))[0]
-        df["sentiment"][idx], df["sentiment_score"][idx] = result["label"], result["score"]
+        df["sentiment"][idx], df["sentiment_score"][idx] = (
+            result["label"],
+            result["score"],
+        )
 
     # 2. Classify sales notes into categories
     note_categories = [
@@ -69,7 +72,10 @@ async def process_unstructured_data_with_llm(df):
     for idx, row in df.iterrows():
         text = row["sales_note"]
         result = await classifier(text, note_categories)
-        df["note_category"][idx], df["note_confidence"][idx] = result["labels"][0], result["scores"][0]
+        df["note_category"][idx], df["note_confidence"][idx] = (
+            result["labels"][0],
+            result["scores"][0],
+        )
 
     # 3. Extract key issues from feedback
     def extract_issues(text):
