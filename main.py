@@ -38,7 +38,8 @@ def process_unstructured_data_with_llm(df):
 
     # Initialize sentiment analysis pipeline
     sentiment_analyzer = pipeline(
-        "sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+        "sentiment-analysis",
+        model="distilbert/distilbert-base-uncased-finetuned-sst-2-english",
     )
 
     # Initialize text classification pipeline
@@ -127,10 +128,15 @@ def process_sales_data(df):
 
     return df
 
+
 def cli():
     parser = argparse.ArgumentParser(description="Process sales data")
-    parser.add_argument("--input", type=str, default="sales_data.csv", help="Input CSV file")
-    parser.add_argument("--output", type=str, default="processed_sales_data.csv", help="Output CSV file")
+    parser.add_argument(
+        "--input", type=str, default="sales_data.csv", help="Input CSV file"
+    )
+    parser.add_argument(
+        "--output", type=str, default="processed_sales_data.csv", help="Output CSV file"
+    )
     args = parser.parse_args()
 
     logger.info(f"Loading sales data from {args.input}")
