@@ -33,8 +33,8 @@ def process_data(df):
     return df
 
 
-def process_unstructured_data_with_llm(df):
-    """Process text data using AI/LLM"""
+def process_unstructured_data_with_local_llm(df):
+    """Process text data using AI/LLM with local transformers"""
 
     # Initialize sentiment analysis pipeline
     sentiment_analyzer = pipeline(
@@ -93,6 +93,68 @@ def process_unstructured_data_with_llm(df):
     return df
 
 
+def process_unstructured_data_with_llm_api(df):
+    """Process text data using Pydantic AI for typed results"""
+    from typing import Literal
+    from pydantic import BaseModel
+    from pydantic_ai import Agent
+
+    class SentimentResult(BaseModel):
+        sentiment: Literal["POSITIVE", "NEGATIVE"]
+        confidence: float
+
+
+    class NoteCategory(BaseModel):
+        category: Literal["technical_issue", "pricing_negotiation", "customer_relationship", "product_feedback"]
+        confidence: float
+
+    sentiment_agent = Agent(
+        'anthropic:claude-3-haiku-20240307',
+        output_type=SentimentResult,
+        output_retries=3,
+        system_prompt="You are a sentiment analysis expert. Analyze the sentiment of customer feedback and return the sentiment (POSITIVE or NEGATIVE) with a confidence score between 0 and 1."
+    )
+
+    note_classification_agent = Agent(
+        'anthropic:claude-3-haiku-20240307',
+        output_type=NoteCategory,
+        output_retries=3,
+        system_prompt="You are a text classifier. Classify sales notes into one of these categories: technical_issue, pricing_negotiation, customer_relationship, or product_feedback. Return the category with a confidence score between 0 and 1."
+    )
+
+    # Process sentiment analysis using Pydantic AI
+    df["sentiment"] = pd.Series(dtype="string")
+    df["sentiment_score"] = pd.Series(dtype="float")
+
+    for idx, row in df.iterrows():
+        text = row["customer_feedback"]
+
+        result = sentiment_agent.run_sync(f"Analyze the sentiment of this customer feedback: {text}")
+        df.loc[idx, "sentiment"] = result.output.sentiment
+        df.loc[idx, "sentiment_score"] = result.output.confidence
+
+    # For note categorization, use Pydantic AI
+    df["note_category"] = pd.Series(dtype="string")
+    df["note_confidence"] = pd.Series(dtype="float")
+
+    for idx, row in df.iterrows():
+        text = row["sales_note"]
+
+        result = note_classification_agent.run_sync(f"Classify this sales note: {text}")
+        df.loc[idx, "note_category"] = result.output.category
+        df.loc[idx, "note_confidence"] = result.output.confidence
+
+    # Extract issues (same logic as local)
+    def extract_issues(text):
+        issue_keywords = ["delay", "problem", "difficult", "improve", "issue", "slow", "complicated"]
+        issues = [word for word in issue_keywords if word in text.lower()]
+        return ", ".join(issues) if issues else "none"
+
+    df["identified_issues"] = df["customer_feedback"].apply(extract_issues)
+
+    return df
+
+
 def anonymize_data(df):
     """Apply privacy protection measures"""
 
@@ -120,12 +182,24 @@ def anonymize_data(df):
     return df
 
 
-def process_sales_data(df):
+def process_sales_data(df, use_local_llm=True):
+    """
+    Process sales data with different LLM processing methods.
+
+    Args:
+        df: Input DataFrame
+        processing_method: "local" or "pydantic_ai"
+        progress_callback: Optional callback function for progress updates
+    """
     logger.info("Processing with traditional methods...")
     df = process_data(df)
 
-    logger.info("Processing with AI/LLM...")
-    df = process_unstructured_data_with_llm(df)
+    if use_local_llm:
+        logger.info("Processing with local LLM...")
+        df = process_unstructured_data_with_local_llm(df)
+    else:
+        logger.info("Processing with LLM API...")
+        df = process_unstructured_data_with_llm_api(df)
 
     logger.info("Applying privacy protection...")
     df = anonymize_data(df)
@@ -141,14 +215,19 @@ def cli():
     parser.add_argument(
         "--output", type=str, default="processed_sales_data.csv", help="Output CSV file"
     )
+    parser.add_argument(
+        "--use-local-llm",
+        action="store_true",
+        help="Use local LLM"
+    )
     args = parser.parse_args()
 
     logger.info(f"Loading sales data from {args.input}")
     df = pd.read_csv(args.input)
 
-    df = process_sales_data(df)
+    df = process_sales_data(df, use_local_llm=args.use_local_llm)
 
-    df.to_csv("processed_sales_data.csv", index=False)
+    df.to_csv(args.output, index=False)
 
     print("\n=== PROCESSING SUMMARY ===")
     print(f"Total orders processed: {len(df)}")

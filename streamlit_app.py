@@ -6,8 +6,8 @@ from main import process_sales_data
 
 
 @st.cache_data
-def cached_process_sales_data(df):
-    return process_sales_data(df)
+def cached_process_sales_data(df, use_local_llm):
+    return process_sales_data(df, use_local_llm)
 
 
 st.title("Sales Data Processor")
@@ -15,11 +15,13 @@ st.title("Sales Data Processor")
 st.write("Upload a CSV file to process:")
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
+use_local_llm = st.toggle("Use local LLM", value=True)
+
 if uploaded_file is None:
     st.stop()
 
 df = pd.read_csv(uploaded_file)
-df = cached_process_sales_data(df)
+df = cached_process_sales_data(df, use_local_llm)
 
 st.write(df)
 st.download_button(
