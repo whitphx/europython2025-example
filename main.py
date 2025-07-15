@@ -48,7 +48,7 @@ def process_unstructured_data_with_llm(df):
     # 1. Sentiment analysis on customer feedback
     def analyze_sentiment(text):
         result = sentiment_analyzer(text)[0]
-        return result["label"], round(result["score"], 2)
+        return result["label"], result["score"]
 
     df[["sentiment", "sentiment_score"]] = df["customer_feedback"].apply(
         lambda x: pd.Series(analyze_sentiment(x))
@@ -64,7 +64,7 @@ def process_unstructured_data_with_llm(df):
 
     def classify_note(text):
         result = classifier(text, note_categories)
-        return result["labels"][0], round(result["scores"][0], 2)
+        return result["labels"][0], result["scores"][0]
 
     df[["note_category", "note_confidence"]] = df["sales_note"].apply(
         lambda x: pd.Series(classify_note(x))
