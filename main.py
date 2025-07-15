@@ -188,8 +188,7 @@ def process_sales_data(df, use_local_llm=True):
 
     Args:
         df: Input DataFrame
-        processing_method: "local" or "pydantic_ai"
-        progress_callback: Optional callback function for progress updates
+        use_local_llm: Whether to use local LLM
     """
     logger.info("Processing structured data...")
     df = process_data(df)
