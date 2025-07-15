@@ -1,18 +1,13 @@
+import argparse
+import logging
 import pandas as pd
 from transformers import pipeline
 import re
 
-# Load the data
-df = pd.read_csv("sales_data.csv")
-
-# =============================================================================
-# TRADITIONAL PROGRAMMING APPROACH - Rule-based processing
-# =============================================================================
+logger = logging.getLogger(__name__)
 
 
-def process_traditional_data(df):
-    """Process data using traditional programming methods"""
-
+def process_data(df):
     # 1. Calculate sales metrics
     df["revenue_category"] = df["purchase_amount"].apply(
         lambda x: "High" if x > 50000 else "Medium" if x > 10000 else "Low"
@@ -38,17 +33,12 @@ def process_traditional_data(df):
     return df
 
 
-# =============================================================================
-# AI/LLM APPROACH - Using Transformers for text processing
-# =============================================================================
-
-
-def process_ai_data(df):
+def process_unstructured_data_with_llm(df):
     """Process text data using AI/LLM"""
 
     # Initialize sentiment analysis pipeline
     sentiment_analyzer = pipeline(
-        "sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest"
+        "sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english"
     )
 
     # Initialize text classification pipeline
@@ -56,11 +46,8 @@ def process_ai_data(df):
 
     # 1. Sentiment analysis on customer feedback
     def analyze_sentiment(text):
-        try:
-            result = sentiment_analyzer(text)[0]
-            return result["label"], round(result["score"], 2)
-        except:
-            return "NEUTRAL", 0.5
+        result = sentiment_analyzer(text)[0]
+        return result["label"], round(result["score"], 2)
 
     df[["sentiment", "sentiment_score"]] = df["customer_feedback"].apply(
         lambda x: pd.Series(analyze_sentiment(x))
@@ -75,11 +62,8 @@ def process_ai_data(df):
     ]
 
     def classify_note(text):
-        try:
-            result = classifier(text, note_categories)
-            return result["labels"][0], round(result["scores"][0], 2)
-        except:
-            return "general", 0.5
+        result = classifier(text, note_categories)
+        return result["labels"][0], round(result["scores"][0], 2)
 
     df[["note_category", "note_confidence"]] = df["sales_note"].apply(
         lambda x: pd.Series(classify_note(x))
@@ -87,29 +71,21 @@ def process_ai_data(df):
 
     # 3. Extract key issues from feedback
     def extract_issues(text):
-        try:
-            issue_keywords = [
-                "delay",
-                "problem",
-                "difficult",
-                "improve",
-                "issue",
-                "slow",
-                "complicated",
-            ]
-            issues = [word for word in issue_keywords if word in text.lower()]
-            return ", ".join(issues) if issues else "none"
-        except:
-            return "none"
+        issue_keywords = [
+            "delay",
+            "problem",
+            "difficult",
+            "improve",
+            "issue",
+            "slow",
+            "complicated",
+        ]
+        issues = [word for word in issue_keywords if word in text.lower()]
+        return ", ".join(issues) if issues else "none"
 
     df["identified_issues"] = df["customer_feedback"].apply(extract_issues)
 
     return df
-
-
-# =============================================================================
-# PRIVACY PROTECTION - Data anonymization
-# =============================================================================
 
 
 def anonymize_data(df):
@@ -139,36 +115,37 @@ def anonymize_data(df):
     return df
 
 
-# =============================================================================
-# MAIN PROCESSING PIPELINE
-# =============================================================================
+def process_sales_data(df):
+    logger.info("Processing with traditional methods...")
+    df = process_data(df)
 
+    logger.info("Processing with AI/LLM...")
+    df = process_unstructured_data_with_llm(df)
 
-def main():
-    # Load and process data
-    print("Loading sales data...")
-    df = pd.read_csv("sales_data.csv")
-
-    print("Processing with traditional methods...")
-    df = process_traditional_data(df)
-
-    print("Processing with AI/LLM...")
-    df = process_ai_data(df)
-
-    print("Applying privacy protection...")
+    logger.info("Applying privacy protection...")
     df = anonymize_data(df)
 
-    # Save processed data
+    return df
+
+def cli():
+    parser = argparse.ArgumentParser(description="Process sales data")
+    parser.add_argument("--input", type=str, default="sales_data.csv", help="Input CSV file")
+    parser.add_argument("--output", type=str, default="processed_sales_data.csv", help="Output CSV file")
+    args = parser.parse_args()
+
+    logger.info(f"Loading sales data from {args.input}")
+    df = pd.read_csv(args.input)
+
+    df = process_sales_data(df)
+
     df.to_csv("processed_sales_data.csv", index=False)
 
-    # Display summary
     print("\n=== PROCESSING SUMMARY ===")
     print(f"Total orders processed: {len(df)}")
     print(f"Revenue categories: {df['revenue_category'].value_counts().to_dict()}")
     print(f"Sentiment distribution: {df['sentiment'].value_counts().to_dict()}")
     print(f"Note categories: {df['note_category'].value_counts().to_dict()}")
 
-    # Show sample results
     print("\n=== SAMPLE RESULTS ===")
     sample_cols = [
         "order_id",
@@ -181,4 +158,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cli()
