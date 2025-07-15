@@ -46,6 +46,7 @@ def process_unstructured_data_with_local_llm(df):
     classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
     # 1. Sentiment analysis on customer feedback
+    logger.info("Processing sentiment analysis with local LLM...")
     df["sentiment"] = pd.Series(dtype="string")
     df["sentiment_score"] = pd.Series(dtype="float")
     for idx, row in df.iterrows():
@@ -62,6 +63,7 @@ def process_unstructured_data_with_local_llm(df):
         "product_feedback",
     ]
 
+    logger.info("Processing note classification with local LLM...")
     df["note_category"] = pd.Series(dtype="string")
     df["note_confidence"] = pd.Series(dtype="float")
     for idx, row in df.iterrows():
@@ -119,6 +121,7 @@ def process_unstructured_data_with_llm_api(df):
     )
 
     # Process sentiment analysis using Pydantic AI
+    logger.info("Processing sentiment analysis with LLM API...")
     df["sentiment"] = pd.Series(dtype="string")
     df["sentiment_score"] = pd.Series(dtype="float")
 
@@ -130,6 +133,7 @@ def process_unstructured_data_with_llm_api(df):
         df.loc[idx, "sentiment_score"] = result.output.confidence
 
     # For note categorization, use Pydantic AI
+    logger.info("Processing note classification with LLM API...")
     df["note_category"] = pd.Series(dtype="string")
     df["note_confidence"] = pd.Series(dtype="float")
 
@@ -187,14 +191,14 @@ def process_sales_data(df, use_local_llm=True):
         processing_method: "local" or "pydantic_ai"
         progress_callback: Optional callback function for progress updates
     """
-    logger.info("Processing with traditional methods...")
+    logger.info("Processing structured data...")
     df = process_data(df)
 
     if use_local_llm:
-        logger.info("Processing with local LLM...")
+        logger.info("Processing unstructured data with local LLM...")
         df = process_unstructured_data_with_local_llm(df)
     else:
-        logger.info("Processing with LLM API...")
+        logger.info("Processing unstructured data with LLM API...")
         df = process_unstructured_data_with_llm_api(df)
 
     logger.info("Applying privacy protection...")
@@ -216,7 +220,14 @@ def cli():
         action="store_true",
         help="Use local LLM"
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Verbose output"
+    )
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING)
 
     logger.info(f"Loading sales data from {args.input}")
     df = pd.read_csv(args.input)
