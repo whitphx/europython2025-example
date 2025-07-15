@@ -46,13 +46,15 @@ def process_unstructured_data_with_llm(df):
     classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
     # 1. Sentiment analysis on customer feedback
-    def analyze_sentiment(text):
+    df["sentiment"] = pd.Series(dtype="string")
+    df["sentiment_score"] = pd.Series(dtype="float")
+    for idx, row in df.iterrows():
+        text = row["customer_feedback"]
         result = sentiment_analyzer(text)[0]
-        return result["label"], result["score"]
-
-    df[["sentiment", "sentiment_score"]] = df["customer_feedback"].apply(
-        lambda x: pd.Series(analyze_sentiment(x))
-    )
+        df["sentiment"][idx], df["sentiment_score"][idx] = (
+            result["label"],
+            result["score"],
+        )
 
     # 2. Classify sales notes into categories
     note_categories = [
@@ -62,13 +64,15 @@ def process_unstructured_data_with_llm(df):
         "product_feedback",
     ]
 
-    def classify_note(text):
+    df["note_category"] = pd.Series(dtype="string")
+    df["note_confidence"] = pd.Series(dtype="float")
+    for idx, row in df.iterrows():
+        text = row["sales_note"]
         result = classifier(text, note_categories)
-        return result["labels"][0], result["scores"][0]
-
-    df[["note_category", "note_confidence"]] = df["sales_note"].apply(
-        lambda x: pd.Series(classify_note(x))
-    )
+        df["note_category"][idx], df["note_confidence"][idx] = (
+            result["labels"][0],
+            result["scores"][0],
+        )
 
     # 3. Extract key issues from feedback
     def extract_issues(text):
