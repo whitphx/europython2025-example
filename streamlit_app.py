@@ -97,3 +97,131 @@ with col2:
         .encode(x=alt.X("sentiment", sort=None), y=alt.Y("count")),
         use_container_width=True,
     )
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Note Category Distribution")
+    note_category_counts = df["note_category"].value_counts()
+    st.altair_chart(
+        alt.Chart(note_category_counts.reset_index())
+        .mark_bar()
+        .encode(x=alt.X("note_category", sort=None), y=alt.Y("count")),
+        use_container_width=True,
+    )
+
+with col2:
+    st.subheader("Identified Issues")
+    issues_counts = df["identified_issues"].value_counts()
+    st.altair_chart(
+        alt.Chart(issues_counts.reset_index())
+        .mark_bar()
+        .encode(x=alt.X("identified_issues", sort=None), y=alt.Y("count")),
+        use_container_width=True,
+    )
+
+st.subheader("Sales Note Analysis")
+st.write("Sample sales notes:")
+# Show a sample of sales notes in an expandable section
+with st.expander("View sales notes samples"):
+    sample_notes = df[["order_id", "customer_segment", "sales_note"]].head(10)
+    st.dataframe(sample_notes, use_container_width=True)
+
+st.subheader("Browse Data with Filters")
+
+# Create filter columns
+filter_col1, filter_col2, filter_col3 = st.columns(3)
+
+with filter_col1:
+    # Customer segment filter
+    segments = ["All"] + sorted(df["customer_segment"].unique().tolist())
+    selected_segment = st.selectbox("Customer Segment", segments)
+    
+    # Revenue category filter
+    revenue_categories = ["All"] + sorted(df["revenue_category"].unique().tolist())
+    selected_revenue_cat = st.selectbox("Revenue Category", revenue_categories)
+
+with filter_col2:
+    # Payment method filter
+    payment_methods = ["All"] + sorted(df["payment_method"].unique().tolist())
+    selected_payment = st.selectbox("Payment Method", payment_methods)
+    
+    # Sentiment filter
+    sentiments = ["All"] + sorted(df["sentiment"].unique().tolist())
+    selected_sentiment = st.selectbox("Sentiment", sentiments)
+
+with filter_col3:
+    # State filter
+    states = ["All"] + sorted(df["state"].unique().tolist())
+    selected_state = st.selectbox("State", states)
+    
+    # Note category filter
+    note_categories = ["All"] + sorted(df["note_category"].unique().tolist())
+    selected_note_cat = st.selectbox("Note Category", note_categories)
+
+# Purchase amount range filter
+st.write("Purchase Amount Range:")
+min_amount = float(df["purchase_amount"].min())
+max_amount = float(df["purchase_amount"].max())
+amount_range = st.slider(
+    "Select range", 
+    min_value=min_amount, 
+    max_value=max_amount, 
+    value=(min_amount, max_amount),
+    format="$%.0f"
+)
+
+# Apply filters
+filtered_df = df.copy()
+
+if selected_segment != "All":
+    filtered_df = filtered_df[filtered_df["customer_segment"] == selected_segment]
+if selected_revenue_cat != "All":
+    filtered_df = filtered_df[filtered_df["revenue_category"] == selected_revenue_cat]
+if selected_payment != "All":
+    filtered_df = filtered_df[filtered_df["payment_method"] == selected_payment]
+if selected_sentiment != "All":
+    filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
+if selected_state != "All":
+    filtered_df = filtered_df[filtered_df["state"] == selected_state]
+if selected_note_cat != "All":
+    filtered_df = filtered_df[filtered_df["note_category"] == selected_note_cat]
+
+# Apply amount range filter
+filtered_df = filtered_df[
+    (filtered_df["purchase_amount"] >= amount_range[0]) & 
+    (filtered_df["purchase_amount"] <= amount_range[1])
+]
+
+# Show filtered results
+st.write(f"Showing {len(filtered_df)} out of {len(df)} records")
+
+# Display filtered data
+st.dataframe(filtered_df, use_container_width=True)
+
+# Show summary metrics for filtered data
+if len(filtered_df) > 0:
+    st.subheader("Filtered Data Summary")
+    summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+    
+    with summary_col1:
+        st.metric("Filtered Records", len(filtered_df))
+    with summary_col2:
+        filtered_revenue = filtered_df["purchase_amount"].sum()
+        if filtered_revenue >= 1_000_000:
+            revenue_display = f"${filtered_revenue / 1_000_000:.1f}M"
+        elif filtered_revenue >= 1_000:
+            revenue_display = f"${filtered_revenue / 1_000:.0f}K"
+        else:
+            revenue_display = f"${filtered_revenue:,.0f}"
+        st.metric("Total Revenue", revenue_display)
+    with summary_col3:
+        avg_amount = filtered_df["purchase_amount"].mean()
+        st.metric("Average Amount", f"${avg_amount:,.0f}")
+    with summary_col4:
+        if len(filtered_df) > 0:
+            positive_count = len(filtered_df[filtered_df["sentiment"] == "POSITIVE"])
+            positive_rate = positive_count / len(filtered_df) * 100
+            st.metric("Positive Sentiment", f"{positive_rate:.1f}%")
+        else:
+            st.metric("Positive Sentiment", "0%")
