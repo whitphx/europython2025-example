@@ -51,10 +51,8 @@ def process_unstructured_data_with_local_llm(df):
     for idx, row in df.iterrows():
         text = row["customer_feedback"]
         result = sentiment_analyzer(text)[0]
-        df["sentiment"][idx], df["sentiment_score"][idx] = (
-            result["label"],
-            result["score"],
-        )
+        df.loc[idx, "sentiment"] = result["label"]
+        df.loc[idx, "sentiment_score"] = result["score"]
 
     # 2. Classify sales notes into categories
     note_categories = [
@@ -69,10 +67,8 @@ def process_unstructured_data_with_local_llm(df):
     for idx, row in df.iterrows():
         text = row["sales_note"]
         result = classifier(text, note_categories)
-        df["note_category"][idx], df["note_confidence"][idx] = (
-            result["labels"][0],
-            result["scores"][0],
-        )
+        df.loc[idx, "note_category"] = result["labels"][0]
+        df.loc[idx, "note_confidence"] = result["scores"][0]
 
     # 3. Extract key issues from feedback
     def extract_issues(text):
